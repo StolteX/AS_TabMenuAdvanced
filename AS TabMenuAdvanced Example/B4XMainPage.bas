@@ -46,10 +46,10 @@ Private Sub B4XPage_Created (Root1 As B4XView)
 	AS_TabMenuAdvanced1.Refresh
 
 	'Sleep(3000)
-	AS_TabMenuAdvanced1.GetTab(0).xTab.BadgeValue = 5
-	AS_TabMenuAdvanced1.GetTab(1).xTab.BadgeValue = 50
-	AS_TabMenuAdvanced1.GetTab(2).xTab.BadgeValue = 50000
-	AS_TabMenuAdvanced1.GetTab(3).xTab.BadgeValue = 500
+'	AS_TabMenuAdvanced1.GetTab(0).xTab.BadgeValue = 5
+'	AS_TabMenuAdvanced1.GetTab(1).xTab.BadgeValue = 50
+'	AS_TabMenuAdvanced1.GetTab(2).xTab.BadgeValue = 50000
+	AS_TabMenuAdvanced1.GetTab(3).xTab.BadgeValue = "NEW"
 	AS_TabMenuAdvanced1.BadgeWithoutText = False
 
 	'AS_TabMenuAdvanced1.GetTab(3).xTab.Enabled = False
@@ -57,6 +57,7 @@ Private Sub B4XPage_Created (Root1 As B4XView)
 '	Dim xpnl_Tab As B4XView = AS_TabMenuAdvanced1.GetTab(2).xTabViews.xpnl_TabBackground
 '	Log("The middle of the tab is: " & (xpnl_Tab.Left + xpnl_Tab.Width/2))
 	
+
 End Sub
 
 #If B4I

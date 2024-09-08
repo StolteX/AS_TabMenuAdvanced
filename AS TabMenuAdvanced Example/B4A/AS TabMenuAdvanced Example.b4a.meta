@@ -10,6 +10,6 @@ ModuleClosedNodes0=6
 ModuleClosedNodes1=
 ModuleClosedNodes2=1
 ModuleClosedNodes3=1
-NavigationStack=AS_TabMenuAdvanced,RefreshIcons,180,0,AS_TabMenuAdvanced,xpnl_Tab_Click,357,0,AS_TabMenuAdvanced,TintBmp,430,0,AS_TabMenuAdvanced,IniProps,76,0,Visual Designer,frm_main.bal,-100,4,AS_TabMenuAdvanced,AddTab,330,0,B4XMainPage,B4XPage_Created,40,6,AS_TabMenuAdvanced,Base_Resize,218,6,AS_TabMenuAdvanced,MeasureTextHeight,773,0,AS_TabMenuAdvanced,MeasureTextWidth,773,0
+NavigationStack=AS_TabMenuAdvanced,RefreshIcons,180,0,AS_TabMenuAdvanced,xpnl_Tab_Click,357,0,AS_TabMenuAdvanced,TintBmp,430,0,AS_TabMenuAdvanced,IniProps,76,0,Visual Designer,frm_main.bal,-100,4,AS_TabMenuAdvanced,AddTab,330,0,B4XMainPage,B4XPage_Created,40,6,AS_TabMenuAdvanced,Base_Resize,218,6,AS_TabMenuAdvanced,MeasureTextHeight,773,0,AS_TabMenuAdvanced,MeasureTextWidth,773,0,AS_TabMenuAdvanced,FontToBitmap,773,0
 SelectedBuild=0
 VisibleModules=2,1

@@ -52,11 +52,27 @@ V1.10
 	-BugFix
 V1.11
 	-Badge optimizations
+V1.12
+	-Add Clear - Clears all tabs
+V1.13
+	-BugFix - the badge was not round when the width was smaller than the height
+	-Add BadgeValue - Sets the badge value without having to call refresh
+	-set Index no longer needs a "refresh" to be changed
+V1.14
+	-BugFix
+V1.15
+	-BugFix on MiddleButtonProperties.CustomWidth
+V1.16
+	-BugFixes
+V1,17
+	-Add Designer Property ShapeColor - A thin line on top of the view
+		-Default: Transparent
 #End If
 
 #DesignerProperty: Key: FirstTabSelected, DisplayName: First Tab Selected, FieldType: Boolean, DefaultValue: True, Description: Set it to False if you dont want a selected tab on start
 #DesignerProperty: Key: BadgeWithoutText, DisplayName: Badge Without Text, FieldType: Boolean, DefaultValue: False, Description: If True then the badges have no text
 #DesignerProperty: Key: BackgroundColor, DisplayName: Background Color, FieldType: Color, DefaultValue: 0xFF202125, Description: Is used for default tab background color
+#DesignerProperty: Key: ShapeColor, DisplayName: ShapeColor, FieldType: Color, DefaultValue: 0x00FFFFFF, Description: A thin line on top of the view
 
 #DesignerProperty: Key: SelectedColor, DisplayName: Selected Color, FieldType: Color, DefaultValue: 0xFF2D8879
 #DesignerProperty: Key: UnselectedColor, DisplayName: Unselected Color, FieldType: Color, DefaultValue: 0xFFFFFFFF
@@ -98,6 +114,7 @@ Sub Class_Globals
 	Private xpnl_BadgeBackground As B4XView
 	Private xpnl_Indicator As B4XView
 	Private xlbl_MiddleButton As B4XView
+	Private xpnl_ShapeLine As B4XView
 	
 	Private m_Index As Int = -1
 	Private m_TabList As List
@@ -107,6 +124,7 @@ Sub Class_Globals
 	Private m_HaloEffect As Boolean = True
 	Private m_HaloColor As Int
 	Private m_CornerRadius As Float
+	Private m_ShapeColor As Int
 	
 	Private m_MiddleButton As Boolean
 	Private m_IndicatorVisible As Boolean = False
@@ -133,6 +151,9 @@ Public Sub DesignerCreateView (Base As Object, Lbl As Label, Props As Map)
 	mBase.AddView(xpnl_BadgeBackground,0,0,mBase.Width,mBase.Height)
 	xpnl_TabBackground.Color = g_TabProperties.BackgroundColor
 	xpnl_BadgeBackground.Color = xui.Color_Transparent
+	xpnl_ShapeLine = xui.CreatePanel("")
+	mBase.AddView(xpnl_ShapeLine,0,0,mBase.Width,1dip)
+	xpnl_ShapeLine.Color = m_ShapeColor
 	
 	#If B4I
 	xpnl_BadgeBackground.As(Panel).UserInteractionEnabled = False
@@ -166,6 +187,7 @@ Private Sub IniProps(Props As Map)
 	m_HaloEffect = Props.Get("HaloEffect")
 	m_ColorIcons = Props.GetDefault("ColorIcons",True)
 	m_HaloColor = xui.PaintOrColorToColor(Props.Get("HaloColor"))
+	m_ShapeColor = xui.PaintOrColorToColor(Props.GetDefault("ShapeColor",0x00FFFFFF))
 	
 	If Props.Get("FirstTabSelected").As(Boolean) = True Then
 		m_Index = 0
@@ -183,8 +205,11 @@ Private Sub Base_Resize (Width As Double, Height As Double)
 	SetCircleClip(mBase,m_CornerRadius)
 	xpnl_TabBackground.SetLayoutAnimated(0,0,0,Width,Height)
 	xpnl_BadgeBackground.SetLayoutAnimated(0,0,0,Width,Height)
+	xpnl_ShapeLine.SetLayoutAnimated(0,0,0,Width,1dip)
 	
-	Dim MiddleButtonGap As Float = IIf(m_MiddleButton = True,IIf(g_MiddleButtonProperties.CustomWidth = 0, Height,g_MiddleButtonProperties.CustomWidth), 0)
+	xpnl_TabBackground.Color = g_TabProperties.BackgroundColor
+	
+	Dim MiddleButtonGap As Float = IIf(m_MiddleButton = True,IIf(g_MiddleButtonProperties.CustomWidth = 0, Height,g_MiddleButtonProperties.CustomWidth), g_MiddleButtonProperties.CustomWidth)
 	xlbl_MiddleButton.Visible = m_MiddleButton And g_MiddleButtonProperties.Visible
 	xlbl_MiddleButton.SetLayoutAnimated(0,Width/2 - MiddleButtonGap/2,0,MiddleButtonGap,MiddleButtonGap)
 	xlbl_MiddleButton.SetColorAndBorder(xlbl_MiddleButton.Color,0,0,MiddleButtonGap/2)
@@ -203,7 +228,7 @@ Private Sub Base_Resize (Width As Double, Height As Double)
 		Dim TabWidth As Float = (Width - MiddleButtonGap)/m_TabList.Size
 		
 		xpnl_Tab.SetLayoutAnimated(0,TabWidth*i + IIf(i >= (m_TabList.Size/2),MiddleButtonGap,0),0,TabWidth,Height)
-		
+
 		Dim TabHeight As Float = Height - IIf(m_IndicatorVisible = True,g_IndicatorProperties.Height + g_IndicatorProperties.SafeGap,0)
 		
 		Dim xpnl_HaloBackground As B4XView = xpnl_Tab.GetView(0)
@@ -225,6 +250,7 @@ Private Sub Base_Resize (Width As Double, Height As Double)
 			HaveIcon = False
 			xlbl_TabText.SetLayoutAnimated(0,0,0,xpnl_Tab.Width,TabHeight)
 		End If
+		xiv_TabIcon.Tag = HaveIcon
 		
 		xlbl_Badge.Visible = IIf(xTab.BadgeValue = 0 Or xTab.BadgeValue = "",False,True)
 		xlbl_Badge.Font = xBadgeProperties.TextFont
@@ -232,17 +258,7 @@ Private Sub Base_Resize (Width As Double, Height As Double)
 		xlbl_Badge.SetTextAlignment("CENTER","CENTER")
 		xlbl_Badge.Text = IIf(m_BadgeWithoutText = True,"", xTab.BadgeValue)
 		
-		Dim BadgeWidth As Float = IIf(m_BadgeWithoutText,xBadgeProperties.Height, MeasureTextWidth(xlbl_Badge.Text,xlbl_Badge.Font) + xBadgeProperties.TextPadding)
-		Dim BadgeHeight As Float = IIf(m_BadgeWithoutText,BadgeWidth,MeasureTextHeight(xlbl_Badge.Text,xlbl_Badge.Font))
-		If BadgeWidth < xBadgeProperties.Height Then BadgeWidth = xBadgeProperties.Height
-		
-		If HaveIcon = True Then
-			xlbl_Badge.SetLayoutAnimated(0,xpnl_Tab.Left + xiv_TabIcon.Left + xiv_TabIcon.Width + 5dip + xBadgeProperties.LeftPadding,xiv_TabIcon.Top - 5dip,BadgeWidth,BadgeHeight)
-		Else
-			xlbl_Badge.SetLayoutAnimated(0,xpnl_Tab.Left + xpnl_Tab.Width/2 + MeasureTextWidth(xTab.Text,xTabProperties.TextFont)/2 + xBadgeProperties.LeftPadding,xpnl_Tab.Height/2 - BadgeWidth,BadgeWidth,BadgeHeight)
-		End If
-		
-		xlbl_Badge.SetColorAndBorder(xBadgeProperties.BackgroundColor,0,0,BadgeHeight/2)
+		SetBadgeSize(xpnl_Tab,xlbl_Badge,xiv_TabIcon,TabIntern)
 		
 		If xTab.Enabled = True Then
 			If i = m_Index Then
@@ -274,6 +290,25 @@ Private Sub Base_Resize (Width As Double, Height As Double)
 	xlbl_MiddleButton.TextColor = g_MiddleButtonProperties.TextColor
 	xlbl_MiddleButton.Font = g_MiddleButtonProperties.xFont
   
+End Sub
+
+Private Sub SetBadgeSize(xpnl_Tab As B4XView,xlbl_Badge As B4XView,xiv_TabIcon As B4XView,TabIntern As ASTabMenuAdvanced_TabIntern)
+	
+	Dim BadgeWidth As Float = IIf(m_BadgeWithoutText,TabIntern.xBadgeProperties.Height, MeasureTextWidth(xlbl_Badge.Text,xlbl_Badge.Font) + TabIntern.xBadgeProperties.TextPadding)
+	Dim BadgeHeight As Float = IIf(m_BadgeWithoutText,BadgeWidth,MeasureTextHeight(xlbl_Badge.Text,xlbl_Badge.Font))
+	If BadgeWidth < TabIntern.xBadgeProperties.Height Then
+		BadgeWidth = TabIntern.xBadgeProperties.Height
+	Else If BadgeWidth < BadgeHeight Then
+		BadgeWidth = BadgeHeight
+	End If
+	
+	If xiv_TabIcon.Tag.As(Boolean) = True Then
+		xlbl_Badge.SetLayoutAnimated(0,xpnl_Tab.Left + xiv_TabIcon.Left + xiv_TabIcon.Width + 5dip + TabIntern.xBadgeProperties.LeftPadding,xiv_TabIcon.Top - 5dip,BadgeWidth,BadgeHeight)
+	Else
+		xlbl_Badge.SetLayoutAnimated(0,xpnl_Tab.Left + xpnl_Tab.Width/2 + MeasureTextWidth(TabIntern.xTab.Text,TabIntern.xTabProperties.TextFont)/2 + TabIntern.xBadgeProperties.LeftPadding,xpnl_Tab.Height/2 - BadgeWidth,BadgeWidth,BadgeHeight)
+	End If
+		
+	xlbl_Badge.SetColorAndBorder(TabIntern.xBadgeProperties.BackgroundColor,0,0,BadgeHeight/2)
 End Sub
 
 Private Sub RefreshIcons
@@ -369,9 +404,31 @@ Public Sub RemoveTabAt(Index As Int)
 	xpnl_BadgeBackground.GetView(Index).RemoveViewFromParent
 End Sub
 
+'Clears all tabs
+Public Sub Clear
+	m_TabList.Clear
+	xpnl_TabBackground.RemoveAllViews
+	xpnl_BadgeBackground.RemoveAllViews
+End Sub
+
 Public Sub Refresh
 	Base_Resize(mBase.Width,mBase.Height)
 	RefreshIcons
+End Sub
+
+'Sets the badge value without having to call refresh
+Public Sub BadgeValue(TabIndex As Int,Value As Int)
+	Dim TabIntern As ASTabMenuAdvanced_TabIntern = m_TabList.Get(TabIndex)
+	TabIntern.xTab.BadgeValue = Value
+	
+	Dim xpnl_Tab As B4XView = xpnl_TabBackground.GetView(TabIndex)
+		
+	Dim xiv_TabIcon As B4XView = xpnl_Tab.GetView(2)
+	Dim xlbl_Badge As B4XView = xpnl_BadgeBackground.GetView(TabIndex)
+	xlbl_Badge.Text = IIf(m_BadgeWithoutText = True,"", Value)
+	xlbl_Badge.Visible = IIf(TabIntern.xTab.BadgeValue = 0 Or TabIntern.xTab.BadgeValue = "",False,True)
+	
+	SetBadgeSize(xpnl_Tab,xlbl_Badge,xiv_TabIcon,TabIntern)
 End Sub
 
 Private Sub CreateTab(xTab As ASTabMenuAdvanced_Tab,xTabProperties As ASTabMenuAdvanced_TabProperties)
@@ -402,6 +459,15 @@ Private Sub CreateTab(xTab As ASTabMenuAdvanced_Tab,xTabProperties As ASTabMenuA
 End Sub
 
 #Region Properties
+
+Public Sub setShapeColor(Color As Int)
+	m_ShapeColor = Color
+	xpnl_ShapeLine.Color = Color
+End Sub
+
+Public Sub getShapeColor As Int
+	Return m_ShapeColor
+End Sub
 
 Public Sub getBadgeWithoutText As Boolean
 	Return m_BadgeWithoutText
@@ -478,13 +544,15 @@ End Sub
 Public Sub GetTabs As List
 	Return m_TabList
 End Sub
-'Call Refresh if you set the index
+
+'Dont need a "Refresh" anymore
 Public Sub getIndex As Int
 	Return m_Index
 End Sub
 
 Public Sub setIndex(Index As Int)
 	m_Index = Index
+	TabClick(xpnl_TabBackground.GetView(Index),False)
 End Sub
 
 #End Region
@@ -516,14 +584,7 @@ Private Sub xlbl_MiddleButton_Click
 	End If
 End Sub
 
-#If B4J
-Private Sub xpnl_Tab_MouseClicked (EventData As MouseEvent)
-#Else
-Private Sub xpnl_Tab_Click
-#End If
-	
-	Dim xpnl_Tab As B4XView = Sender
-	
+Private Sub TabClick(xpnl_Tab As B4XView,isUserTap As Boolean)
 	'Dim OldIndex As Int = m_Index
 
 	For i = 0 To xpnl_TabBackground.NumberOfViews -1
@@ -560,7 +621,7 @@ Private Sub xpnl_Tab_Click
 				If TabIntern.xTab.IconSelected.IsInitialized = True Then xiv_TabIcon.SetBitmap(ChangeColorBasedOnAlphaLevel(TabIntern.xTab.IconSelected,TabIntern.xTabProperties.SelectedColor).Resize(xiv_TabIcon.Width * scale,xiv_TabIcon.Height * scale,True))
 			#Else
 				If TabIntern.xTab.IconSelected.IsInitialized = True Then xiv_TabIcon.SetBitmap(TabIntern.xTab.IconSelected.Resize(xiv_TabIcon.Width * scale,xiv_TabIcon.Height * scale,True))
-			If xiv_TabIcon.GetBitmap.IsInitialized = True Then TintBmp(xiv_TabIcon,TabIntern.xTabProperties.SelectedColor)
+				If xiv_TabIcon.GetBitmap.IsInitialized = True Then TintBmp(xiv_TabIcon,TabIntern.xTabProperties.SelectedColor)
 			#End If
 			
 				xpnl_Indicator.SetLayoutAnimated(g_IndicatorProperties.Duration,xpnl_Tab.Left,mBase.Height - g_IndicatorProperties.Height,xpnl_Tab.Width,g_IndicatorProperties.Height)
@@ -573,8 +634,8 @@ Private Sub xpnl_Tab_Click
 			#If B4J 
 				If TabIntern.xTab.IconUnselected.IsInitialized = True Then xiv_TabIcon.SetBitmap(ChangeColorBasedOnAlphaLevel(TabIntern.xTab.IconUnselected,TabIntern.xTabProperties.UnselectedColor).Resize(xiv_TabIcon.Width * scale,xiv_TabIcon.Height * scale,True))
 			#Else
-			If TabIntern.xTab.IconUnselected.IsInitialized = True Then xiv_TabIcon.SetBitmap(TabIntern.xTab.IconUnselected.Resize(xiv_TabIcon.Width * scale,xiv_TabIcon.Height * scale,True))
-			If xiv_TabIcon.GetBitmap.IsInitialized = True Then TintBmp(xiv_TabIcon,TabIntern.xTabProperties.UnselectedColor)
+				If TabIntern.xTab.IconUnselected.IsInitialized = True Then xiv_TabIcon.SetBitmap(TabIntern.xTab.IconUnselected.Resize(xiv_TabIcon.Width * scale,xiv_TabIcon.Height * scale,True))
+				If xiv_TabIcon.GetBitmap.IsInitialized = True Then TintBmp(xiv_TabIcon,TabIntern.xTabProperties.UnselectedColor)
 			#End If
 			Else
 				xlbl_TabText.TextColor = TabIntern.xTabProperties.DisabledColor
@@ -582,22 +643,29 @@ Private Sub xpnl_Tab_Click
 			#If B4J
 				If TabIntern.xTab.IconDisabled.IsInitialized = True Then xiv_TabIcon.SetBitmap(ChangeColorBasedOnAlphaLevel(TabIntern.xTab.IconDisabled,TabIntern.xTabProperties.DisabledColor).Resize(xiv_TabIcon.Width * scale,xiv_TabIcon.Height * scale,True))
 			#Else
-			If TabIntern.xTab.IconDisabled.IsInitialized = True Then xiv_TabIcon.SetBitmap(TabIntern.xTab.IconDisabled.Resize(xiv_TabIcon.Width * scale,xiv_TabIcon.Height * scale,True))
-			If xiv_TabIcon.GetBitmap.IsInitialized = True Then TintBmp(xiv_TabIcon,TabIntern.xTabProperties.DisabledColor)
+				If TabIntern.xTab.IconDisabled.IsInitialized = True Then xiv_TabIcon.SetBitmap(TabIntern.xTab.IconDisabled.Resize(xiv_TabIcon.Width * scale,xiv_TabIcon.Height * scale,True))
+				If xiv_TabIcon.GetBitmap.IsInitialized = True Then TintBmp(xiv_TabIcon,TabIntern.xTabProperties.DisabledColor)
 			#End If
 			End If
 		End If
 		
 	Next
 	
-	If m_HaloEffect = True Then
+	If m_HaloEffect = True And isUserTap Then
 		CreateHaloEffect(xpnl_HaloBackground,xpnl_HaloBackground.Width/2,xpnl_HaloBackground.Height/2,m_HaloColor)
 	End If
 	
 	'If OldIndex <> m_Index Then
-	TabClickEvent(m_Index)
+	If isUserTap Then TabClickEvent(m_Index)
 	'End If
-	
+End Sub
+
+#If B4J
+Private Sub xpnl_Tab_MouseClicked (EventData As MouseEvent)
+#Else
+Private Sub xpnl_Tab_Click
+#End If
+	TabClick(Sender,True)
 End Sub
 
 #End Region
